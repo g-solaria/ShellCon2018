@@ -1,31 +1,45 @@
 from googleapiclient.discovery import build
+from makeKeywordList import makeKeywordList
+from makeWebsiteList import makeWebsiteList
 import json
 
+websiteList = makeWebsiteList()
+keywordList = makeKeywordList()
+
+# Google CSE api key and search engine ID. 
+keyFile = '.monitor.api'
+engineFile = '.search.id'
+
+# read API key and CSE ID into memory
+with open(keyFile) as f_obj:
+    my_api_key = f_obj.read().rstrip()
+
+with open(engineFile) as f_obj:
+    my_cse_id = f_obj.read().rstrip()
+
+queryList = []
+for website in websiteList:
+    query = "site:" + website.rstrip() + ' ' + '"' + keywordList[0].rstrip() + '"'
+    queryList.append(query)
+
 def google_search(search_term, api_key, cse_id, **kwargs):
+	service = build("customsearch", "v1", developerKey=api_key)
+	res = service.cse().list(q=search_term, cx=cse_id, **kwargs).execute()
+	try:
+		return res['items']
+	except KeyError:
+		pass
 
-    # Builds the service using the Custom Search Engine, specifies the CSE version,
-    # and provides the CSE API key. 
-    service = build("customsearch", "v1", developerKey=api_key)
+resultsList = []
 
-    # Runs the search using the built service. 
-    res = service.cse().list(q=search_term, cx=cse_id, **kwargs).execute()
-
-    # Store the results in a list, with an exception for key errors.  
+for query in queryList:
+    results = google_search(query, my_api_key, my_cse_id, num=10)
     try:
-        return res['items']
-    except KeyError:
+        for result in results:
+            resultsList.append(result['link'])
+    except TypeError:
         pass
 
-# Create an empty list to store results in. 
-results_list = []
-
-# Takes a list of queries and runs them through the CSE API
-for query in query_list: 
-    results = google_search(query, api_key, cse_id, num=100)
-    try: 
-        for result in results:
-            # Result will be a json object, append the value for key 'link'
-            results_list.append(result['link'])
-        except Exception as e:
-            print(e)
-
+with open('output.txt', 'w') as file:
+	for r in resultsList:
+		file.write('%s\n' % r)
