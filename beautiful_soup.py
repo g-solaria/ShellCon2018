@@ -1,20 +1,23 @@
-import bs4, re, requests
+import bs4, re, requests, time, timeout_decorator
 
-with open("keywordfile.txt") as keywords:
+with open('keywordfile.txt') as keywords:
 	keywordList = keywords.readlines()
 
+@timeout_decorator.timeout(15, timeout_exception=StopIteration)
 def priorityFirst(htmlSoup):
     """Counts instances of the first keyword"""
     search_word = keywordList[0].rstrip()    
     keys = htmlSoup.body.find_all(strings=re.compile('.*{0}*'.format(search_word)), recursive=True)
     return keys
 
+@timeout_decorator.timeout(15, timeout_exception=StopIteration)
 def prioritySecond(htmlSoup):
     """Counts instances of the second keyword"""
     search_word = keywordList[1].rstrip()
     keys = htmlSoup.body.find_all(strings=re.compile('.*{0}*'.format(search_word)), recursive =True)
     return keys
 
+@timeout_decorator.timeout(15, timeout_exception=StopIteration)	
 def priorityRest(htmlSoup):
     """Counts instances of the rest of the keywords"""
     secondKeylist = keywordList[2:-1]
@@ -48,6 +51,8 @@ for result in resultList:
 			lowPriority.append(result)	
 	except AttributeError:
 		pass		
+	except StopIteration:
+		print("Timed Out")
 	except Exception as exp: 
 		print("There was a problem %s" % (exp))
 

@@ -1,5 +1,8 @@
 from google.cloud import language
 import requests
+import bs4
+import time
+import timeout_decorator
 
 with open('output.txt', 'r') as f_obj: 
 	resultsList = f_obj.readlines()
@@ -7,23 +10,38 @@ with open('output.txt', 'r') as f_obj:
 #for r in resultsList:
 #	print(r)
 
-def get_ents(page):
+
+def get_sentiment(page):
 	
 	client = language.LanguageServiceClient()
 	
-	document = language.types.Document(content=page, type="HTML")
+	document = language.types.Document(content=page, type="PLAIN_TEXT")
 	
-	result = client.analyze_entities(document=document)
+	response = client.analyze_sentiment(document=document, encoding_type="UTF32")
+	
+	sentiment = response.document_sentiment
+	
+	print(sentiment.score)
+	print(sentiment.magnitude)
 	
 for r in resultsList:
 	page = requests.get(r)
+
+	try:
+		html = page.text
 	
-	html = page.text
+		soup = bs4.BeautifulSoup(html, "lxml")
 	
-	print(html)
-	 
-#	entity = get_ents(html)
+		body = soup.body.get_text()
+		
+		print(r)
+		
+		sentiment = get_sentiment(body)
 	
-#	print(entity)
+		
+	except AttributeError:
+		pass
+	except Exception as e:
+		print("There was an exception: %s" % (e))	
 	
 	
